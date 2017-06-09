@@ -2,11 +2,36 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
-//#include "glut.h"
 #include <chrono>
 #include <GL/glut.h> 
 
+#define WIDTH 500
+#define HEIGHT 500
+#define POINT_SIZE 10
+
 using namespace std;
+
+//definindo variaveis globais
+vector<pair<int,int>> *points;
+pair<double, double> *ponto;
+bool flag = false;
+int tamX, tamY;
+
+
+pair<double, double>* getPoint(int x1, int y1)
+{
+    for (vector<pair<double, double>>::iterator it = points->begin(); it != points->end(); ++it)
+    {
+        if (it->first == x1 && it->second == y1)
+        {
+            return it;
+        }
+    }
+
+
+
+    return NULL;
+}
 
 void desenhaGrade()
     {
@@ -53,107 +78,122 @@ void Draw() {
 }
 
 void Initialize() {
-    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glViewport(0, 0, WIDTH, HEIGHT);
+    
+    glClear(GL_COLOR_BUFFER_BIT);
+    
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0.0, 500.0, 0.0, 500.0, 1.0, -1.0 );
+    glClearColor(0.f, 0.f, 0.f, 1.0f);
+    glOrtho(0, WIDTH, HEIGHT, 0, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glutSwapBuffers();
+}
+
+
+   /*  glClearColor(0.0, 0.0, 0.0, 0.0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-WIDTH/2, WIDTH/2, -HEIGHT/2, HEIGHT/2, -100, 100);
     glViewport( 0,0, 500, 500 );
     //glOrtho(10.0, 10.0, 1.0, 1.0, -1.0, 1.0);
     //glMatrixMode(GL_MODELVIEW);
-}
-
-void CliqueMouse(int button, int state, int x, int y){ 
-
-    if(button == GLUT_LEFT_BUTTON){
-        if(state == GLUT_DOWN){
-        printf("Clicou com o botão esquerdo na Posição  X : %i Y : %i \n",x,y);
-        }else if (state == GLUT_UP){
-        printf("Soltou Botão esquerdo\n");
-        }
-    }else if(button == GLUT_RIGHT_BUTTON){
-        if(state == GLUT_DOWN){
-        printf("Clicou com o botão direito na Posição  X : %i Y : %i \n",x,y);
-        }else if(state == GLUT_UP){
-        printf("Soltou Botão direito\n");
-        }
-    }else if (button == GLUT_MIDDLE_BUTTON){
-        if(state == GLUT_DOWN){
-        printf("Clicou com o botão do meio na Posição  X : %i Y : %i \n",x,y);
-        }else if(state == GLUT_UP){
-        printf("Soltou Botão do meio\n");
-        }
-    }
-} 
-
-vector<pair<int,int>> pontos;
+}*/
 
 void point()
 {
-    glClear(GL_COLOR_BUFFER_BIT);
-    glLoadIdentity();    
-
-    // Preto: RGB especificado como valores de 0 a 1 (float)
-    glColor3f(0.0f, 0.0f, 1.0f);
-    glColor3f(1.0f, 0.0f, 0.0f); // vermelho
-    glPointSize(10.0f); // aumenta o tamanho dos pontos
-    glBegin(GL_POINTS);
-        glVertex2f(-0.8,-0.5);
-        glVertex2f( 0.8,-0.5);
-        glVertex2f(-0.8, 0.0);
-        glVertex2f( 0.8, 0.0);
-        glVertex2f(-0.8, 0.5);
-        glVertex2f( 0.8, 0.5);
-    glEnd();
-    glutSwapBuffers();
-}
-
-void Draw2()
-{
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glLoadIdentity();
-    glColor3f(0.0, 0.0, 0.0);
-    glBegin(GL_QUADS);
-        //glColor3f(1.0f, 0.0f, 0.0f);
-        glColor3f(0.0, 0.5, 0.9); 
-        for (int i = 0; i < 4; ++i)
-        {
-          glVertex2f(pontos.back().first, pontos.back().second);
-        }
-        
-    glEnd();
-    glutSwapBuffers();
-}
-
-void DrawSquad(int button, int state, int x, int y)
-{
-    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+    if (!flag)
     {
-        if (pontos.size() < 4)
-        {
-            pontos.push_back(make_pair(x/100,y/100));
+        //manage point's position
 
-            printf("x = %d,  y = %d\n", pontos.back().first, pontos.back().second);
-            printf("x = %d,  y = %d\n ", x, y);
-            if (pontos.size() == 4)  
-            {
-                glutDisplayFunc(Draw2);
-                glutIdleFunc(Draw);
-            }
+    } 
+    else
+    {
+        //add point to screen
+        glClear(GL_COLOR_BUFFER_BIT);
+        glLoadIdentity();    
+
+        glColor3f(1, 0, 0);
+        glPointSize(POINT_SIZE);
+        glBegin(GL_POINTS);
+        
+        for (vector<pair<int,int>>::iterator it = points.begin(); it != points.end(); ++it)
+        {
+            glVertex2f(it->first, it->second); 
         }
+        flag = false; 
+        glEnd();
+        glutSwapBuffers();
     }
 }
 
+void onCLick(int button, int state, int x, int y)
+{
+    float half = (float) POINT_SIZE * 0.5f;
+    double xTemp = x;
+    double yTemp = y;
+    double x1 = xTemp + half;
+    double y1 = yTemp - half;
+
+    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+    {
+        //add points
+        if (points.size() < 4)
+        {       
+            points.push_back(make_pair(x1,y1));
+
+            printf("x = %d,  y = %d\n", points.back().first, points.back().second);
+            printf("x = %d,  y = %d\n ", x, y);  
+
+            if (points.size() == 4) flag = true;
+        }
+        else 
+        {
+            //check clicked in a point
+            pair<double, double> *aux = getPoint(x1, y1);
+            if (aux != NULL)
+            {
+                ponto = aux;
+            }
+        }
+    }
+    else if (state == GLUT_UP)
+    {
+        ponto = NULL;
+    }
+}
+
+void dragPoint(int x, int y)
+{
+    if (!ponto)  return;
+
+    float half = (float) POINT_SIZE * 0.5f;
+    double xTemp = x;
+    double yTemp = y;
+    double x1 = xTemp + half;
+    double y1 = yTemp - half;    
+
+    ponto->first = x1;
+    ponto->second = y1;
+}
+
+
 int main(int iArgc, char** cppArgv) {
+    //pegando dados da entrada
+    freopen("entrada.in", "r", stdin);
+    scanf("%d%d", &tamX, &tamY);
+
+
     glutInit(&iArgc, cppArgv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowSize(500, 500);
+    glutInitWindowSize(WIDTH, HEIGHT);
     glutInitWindowPosition(200, 200);
     glutCreateWindow("Interpolacao Bilineara Interativa");
-    //glutDisplayFunc(Draw);
-    //glutIdleFunc(Draw);
     glutDisplayFunc(point);
-    glutMouseFunc(DrawSquad);
+    glutIdleFunc(point);
+    //glutDisplayFunc(point);
+    glutMouseFunc(onCLick);
+    glutPassiveMotionFunc(dragPoint);
     Initialize();
     glutMainLoop();
     return 0;
