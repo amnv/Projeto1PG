@@ -9,26 +9,37 @@
 #define HEIGHT 500
 #define POINT_SIZE 10
 
+enum name {PONTO_AB, PONTO_CD, PONTO_AD, PONTO_BC};
+
+
 using namespace std;
 
+typedef pair<double,double> pdd;
+
 //definindo variaveis globais
-vector<pair<int,int>> *points;
-pair<double, double> *ponto;
-bool flag = false;
+vector<pdd> mainPoints;
+vector<vector<pdd>> grade;
+pdd *ponto;
 int tamX, tamY;
+bool arrastando = false;
 
 
-pair<double, double>* getPoint(int x1, int y1)
+bool isInsideMargin(pdd point, double x, double y)
 {
-    for (vector<pair<double, double>>::iterator it = points->begin(); it != points->end(); ++it)
+    double margin = 15;
+    return ((point.first >= x && point.first <= x + margin) || (point.first <= x && point.first >= x - margin))
+            && ((point.second >= y && point.second <= y + margin) || (point.second <= y && point.second >= y - margin));
+
+}
+
+pdd* getPoint(int x1, int y1)
+{
+    int t = mainPoints.size();
+    for(int i = 0; i < t; ++i)
     {
-        if (it->first == x1 && it->second == y1)
-        {
-            return it;
-        }
+        if(isInsideMargin(mainPoints[i], x1,y1))
+            return &mainPoints[i];
     }
-
-
 
     return NULL;
 }
@@ -57,6 +68,25 @@ void desenhaGrade()
         glEnd();
 
     } 
+
+void makeLinePoints(pdd p1, pdd p2)
+{
+    double x, y;
+    for (double j = 1;; j+= 0.2)
+    {
+        x = ((1 - j)*p1.first) + (j*p2.first);
+        y = ((1 - j)*p1.second) + (j*p2.second);
+        if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
+        grade.push_back(make_pair(x,y));
+    }
+    for (double j = 1;; j-= 0.2)
+    {
+        x = ((1 - j)*p1.first) + (j*p2.first);
+        y = ((1 - j)*p1.second) + (j*p2.second);
+        if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
+        grade.push_back(make_pair(x,y));
+    }
+}
 
 void Draw() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -102,13 +132,6 @@ void Initialize() {
 
 void point()
 {
-    if (!flag)
-    {
-        //manage point's position
-
-    } 
-    else
-    {
         //add point to screen
         glClear(GL_COLOR_BUFFER_BIT);
         glLoadIdentity();    
@@ -116,15 +139,20 @@ void point()
         glColor3f(1, 0, 0);
         glPointSize(POINT_SIZE);
         glBegin(GL_POINTS);
-        
-        for (vector<pair<int,int>>::iterator it = points.begin(); it != points.end(); ++it)
+        for (vector<pdd>::iterator it = mainPoints.begin(); it != mainPoints.end(); ++it)
+        {
+            glVertex2f(it->first, it->second); 
+            if (mainPoints.size() > 1 && grade.empty()) makeLinePoints(mainPoints[0], mainPoints[1]);
+        }
+
+        glColor3f(1, 1  , 0);
+        for (vector<pdd>::iterator it = grade.begin(); it != grade.end(); ++it)
         {
             glVertex2f(it->first, it->second); 
         }
-        flag = false; 
+
         glEnd();
         glutSwapBuffers();
-    }
 }
 
 void onCLick(int button, int state, int x, int y)
@@ -137,36 +165,39 @@ void onCLick(int button, int state, int x, int y)
 
     if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
     {
-        //add points
-        if (points.size() < 4)
+        //add mainPoints
+        if (mainPoints.size() < 4)
         {       
-            points.push_back(make_pair(x1,y1));
+            mainPoints.push_back(make_pair(x1,y1));
 
-            printf("x = %d,  y = %d\n", points.back().first, points.back().second);
+            printf("x = %lf,  y = %lf\n", mainPoints.back().first, mainPoints.back().second);
             printf("x = %d,  y = %d\n ", x, y);  
-
-            if (points.size() == 4) flag = true;
         }
         else 
         {
             //check clicked in a point
-            pair<double, double> *aux = getPoint(x1, y1);
-            if (aux != NULL)
+            pdd *aux = getPoint(x1, y1);
+            if (aux != NULL && !arrastando)
             {
+                printf("entra\n");
                 ponto = aux;
+                arrastando = true;
             }
+            else if(arrastando)
+            {
+              printf("não entra\n");
+              ponto = NULL;  
+              arrastando = false;
+            } 
         }
-    }
-    else if (state == GLUT_UP)
-    {
-        ponto = NULL;
     }
 }
 
 void dragPoint(int x, int y)
 {
-    if (!ponto)  return;
 
+    if (!ponto)  return;
+    printf("arrasta\n");
     float half = (float) POINT_SIZE * 0.5f;
     double xTemp = x;
     double yTemp = y;
@@ -189,7 +220,7 @@ int main(int iArgc, char** cppArgv) {
     glutInitWindowSize(WIDTH, HEIGHT);
     glutInitWindowPosition(200, 200);
     glutCreateWindow("Interpolacao Bilineara Interativa");
-    glutDisplayFunc(point);
+    //glutDisplayFunc(point);
     glutIdleFunc(point);
     //glutDisplayFunc(point);
     glutMouseFunc(onCLick);
