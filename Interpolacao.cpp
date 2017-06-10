@@ -26,7 +26,7 @@ bool pontosCriados = false;
 
 bool isInsideMargin(pdd point, double x, double y)
 {
-    double margin = 15;
+    double margin = 5;
     return ((point.first >= x && point.first <= x + margin) || (point.first <= x && point.first >= x - margin))
             && ((point.second >= y && point.second <= y + margin) || (point.second <= y && point.second >= y - margin));
 
@@ -81,20 +81,22 @@ void makeLinePoints(pdd p1, pdd p2, int pos)
     double x, y;
     for (double j = 1;; j+= 0.2)
     {
-        printf("adiconando pontos\n");
-        printf("adiconando na posicao %d\n", pos);
         x = ((1 - j)*p1.first) + (j*p2.first);
         y = ((1 - j)*p1.second) + (j*p2.second);
+        printf("passando\n");
         if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
+        if (isInsideMargin(p1, x, y) && isInsideMargin(p2, x, y)) continue;
         grade[pos].push_back(make_pair(x,y));
     }
-    for (double j = 1;; j-= 0.2)
+    /*for (double j = -1;; j-= 0.2)
     {
         x = ((1 - j)*p1.first) + (j*p2.first);
         y = ((1 - j)*p1.second) + (j*p2.second);
         if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
-     grade[pos].push_back(make_pair(x,y));
+        //if (isInsideMargin(p1, x, y) && isInsideMargin(p2, x, y)) continue;
+        grade[pos].push_back(make_pair(x,y));
     }
+    */
 }
 
 void makePointsFromVector(int posVector1, int posVector2, int posPontos)
@@ -124,7 +126,7 @@ void point()
 
         
         //Gera pontos a partir dos pontos iniciais
-        if (mainPoints.size() > 3 && !pontosCriados)
+        if (mainPoints.size() == 4 && !pontosCriados)
         {
             makeLinePoints(mainPoints[PONTO_A], mainPoints[PONTO_B], PONTOS_AB);
             makeLinePoints(mainPoints[PONTO_A], mainPoints[PONTO_D], PONTOS_AD);
@@ -132,7 +134,7 @@ void point()
             makeLinePoints(mainPoints[PONTO_C], mainPoints[PONTO_D], PONTOS_CD);
             pontosCriados = true;
         
-            //  printf("vai gerar pontos\n");
+            //printf("vai gerar pontos\n");
             //gera pontos a partir dos pontos computados
             //tem de estar na mesm ordem que os colocado a cima
             makePointsFromVector(PONTOS_AB, PONTOS_CD, PONTOS_AB_CD);
@@ -147,7 +149,6 @@ void point()
         {
             for (vector<pdd>::iterator it = grade[i].begin(); it != grade[i].end(); ++it)
             {
-                printf("gerando\n");
                 glVertex2f(it->first, it->second); 
             }
         }
