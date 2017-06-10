@@ -9,8 +9,8 @@
 #define HEIGHT 500
 #define POINT_SIZE 10
 
-enum name {PONTO_AB, PONTO_CD, PONTO_AD, PONTO_BC};
-
+enum PontosCombinacao {PONTOS_AB, PONTOS_CD, PONTOS_AD, PONTOS_BC, PONTOS_AB_CD, PONTOS_AD_BC};
+enum pontoInit {PONTO_A, PONTO_B, PONTO_C, PONTO_D};
 
 using namespace std;
 
@@ -18,11 +18,11 @@ typedef pair<double,double> pdd;
 
 //definindo variaveis globais
 vector<pdd> mainPoints;
-vector<vector<pdd>> grade;
+vector<vector<pdd>> grade(6);
 pdd *ponto;
 int tamX, tamY;
 bool arrastando = false;
-
+bool pontosCriados = false;
 
 bool isInsideMargin(pdd point, double x, double y)
 {
@@ -42,50 +42,6 @@ pdd* getPoint(int x1, int y1)
     }
 
     return NULL;
-}
-
-void desenhaGrade()
-    {
-        glColor3f(0.8f,0.8f,0.8f);
-        glLineWidth(1.0f);
-        glBegin(GL_LINES);
-        float x = -10;
-        for(;x<=10; x++)
-        {
-            glVertex2f(-10,x);
-            glVertex2f( 10,x);
-            glVertex2f(x,-10);
-            glVertex2f(x, 10);
-        }
-        glEnd();
-        glColor3f(0.0f,0.0f,0.0f);
-        glLineWidth(3.0f);
-        glBegin(GL_LINES);
-            glVertex2f(-10,0);
-            glVertex2f( 10,0);
-            glVertex2f(0,-10);
-            glVertex2f(0, 10);
-        glEnd();
-
-    } 
-
-void makeLinePoints(pdd p1, pdd p2)
-{
-    double x, y;
-    for (double j = 1;; j+= 0.2)
-    {
-        x = ((1 - j)*p1.first) + (j*p2.first);
-        y = ((1 - j)*p1.second) + (j*p2.second);
-        if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
-        grade.push_back(make_pair(x,y));
-    }
-    for (double j = 1;; j-= 0.2)
-    {
-        x = ((1 - j)*p1.first) + (j*p2.first);
-        y = ((1 - j)*p1.second) + (j*p2.second);
-        if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
-        grade.push_back(make_pair(x,y));
-    }
 }
 
 void Draw() {
@@ -120,15 +76,37 @@ void Initialize() {
     glutSwapBuffers();
 }
 
+void makeLinePoints(pdd p1, pdd p2, int pos)
+{
+    double x, y;
+    for (double j = 1;; j+= 0.2)
+    {
+        printf("adiconando pontos\n");
+        printf("adiconando na posicao %d\n", pos);
+        x = ((1 - j)*p1.first) + (j*p2.first);
+        y = ((1 - j)*p1.second) + (j*p2.second);
+        if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
+        grade[pos].push_back(make_pair(x,y));
+    }
+    for (double j = 1;; j-= 0.2)
+    {
+        x = ((1 - j)*p1.first) + (j*p2.first);
+        y = ((1 - j)*p1.second) + (j*p2.second);
+        if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
+     grade[pos].push_back(make_pair(x,y));
+    }
+}
 
-   /*  glClearColor(0.0, 0.0, 0.0, 0.0);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(-WIDTH/2, WIDTH/2, -HEIGHT/2, HEIGHT/2, -100, 100);
-    glViewport( 0,0, 500, 500 );
-    //glOrtho(10.0, 10.0, 1.0, 1.0, -1.0, 1.0);
-    //glMatrixMode(GL_MODELVIEW);
-}*/
+void makePointsFromVector(int posVector1, int posVector2, int posPontos)
+{
+    int tam1 = grade[posVector1].size();
+    int tam2 = grade[posVector2].size();
+    for (int i = 0; i < tam1 && i < tam2 ; i++)
+    {
+        makeLinePoints(grade[posVector1][i],
+            grade[posVector2][i],posPontos);
+    }
+}
 
 void point()
 {
@@ -142,13 +120,36 @@ void point()
         for (vector<pdd>::iterator it = mainPoints.begin(); it != mainPoints.end(); ++it)
         {
             glVertex2f(it->first, it->second); 
-            if (mainPoints.size() > 1 && grade.empty()) makeLinePoints(mainPoints[0], mainPoints[1]);
         }
 
-        glColor3f(1, 1  , 0);
-        for (vector<pdd>::iterator it = grade.begin(); it != grade.end(); ++it)
+        
+        //Gera pontos a partir dos pontos iniciais
+        if (mainPoints.size() > 3 && !pontosCriados)
         {
-            glVertex2f(it->first, it->second); 
+            makeLinePoints(mainPoints[PONTO_A], mainPoints[PONTO_B], PONTOS_AB);
+            makeLinePoints(mainPoints[PONTO_A], mainPoints[PONTO_D], PONTOS_AD);
+            makeLinePoints(mainPoints[PONTO_B], mainPoints[PONTO_C], PONTOS_BC);
+            makeLinePoints(mainPoints[PONTO_C], mainPoints[PONTO_D], PONTOS_CD);
+            pontosCriados = true;
+        
+            //  printf("vai gerar pontos\n");
+            //gera pontos a partir dos pontos computados
+            //tem de estar na mesm ordem que os colocado a cima
+            makePointsFromVector(PONTOS_AB, PONTOS_CD, PONTOS_AB_CD);
+            makePointsFromVector(PONTOS_AD, PONTOS_BC, PONTOS_AD_BC);
+        } 
+
+        //printf("%ld\n", grade[0].size());
+
+        //printf("gerou\n");
+        glColor3f(1, 1  , 0);
+        for(int i = 0; i < grade.size(); i++)
+        {
+            for (vector<pdd>::iterator it = grade[i].begin(); it != grade[i].end(); ++it)
+            {
+                printf("gerando\n");
+                glVertex2f(it->first, it->second); 
+            }
         }
 
         glEnd();
