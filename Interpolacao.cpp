@@ -7,7 +7,7 @@
 
 #define WIDTH 500
 #define HEIGHT 500
-#define POINT_SIZE 10
+#define POINT_SIZE 5
 
 enum PontosCombinacao {PONTOS_AB, PONTOS_CD, PONTOS_AD, PONTOS_BC, PONTOS_AB_CD, PONTOS_AD_BC};
 enum pontoInit {PONTO_A, PONTO_B, PONTO_C, PONTO_D};
@@ -23,10 +23,11 @@ pdd *ponto;
 int tamX, tamY;
 bool arrastando = false;
 bool pontosCriados = false;
+bool atualizaPontos = false;
 
 bool isInsideMargin(pdd point, double x, double y)
 {
-    double margin = 5;
+    double margin = 15;
     return ((point.first >= x && point.first <= x + margin) || (point.first <= x && point.first >= x - margin))
             && ((point.second >= y && point.second <= y + margin) || (point.second <= y && point.second >= y - margin));
 
@@ -85,18 +86,16 @@ void makeLinePoints(pdd p1, pdd p2, int pos)
         y = ((1 - j)*p1.second) + (j*p2.second);
         printf("passando\n");
         if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
-        if (isInsideMargin(p1, x, y) && isInsideMargin(p2, x, y)) continue;
         grade[pos].push_back(make_pair(x,y));
     }
-    /*for (double j = -1;; j-= 0.2)
+    for (double j = 1;; j-= 0.2)
     {
         x = ((1 - j)*p1.first) + (j*p2.first);
         y = ((1 - j)*p1.second) + (j*p2.second);
         if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
-        //if (isInsideMargin(p1, x, y) && isInsideMargin(p2, x, y)) continue;
         grade[pos].push_back(make_pair(x,y));
     }
-    */
+    
 }
 
 void makePointsFromVector(int posVector1, int posVector2, int posPontos)
@@ -116,42 +115,55 @@ void point()
         glClear(GL_COLOR_BUFFER_BIT);
         glLoadIdentity();    
 
-        glColor3f(1, 0, 0);
-        glPointSize(POINT_SIZE);
-        glBegin(GL_POINTS);
-        for (vector<pdd>::iterator it = mainPoints.begin(); it != mainPoints.end(); ++it)
-        {
-            glVertex2f(it->first, it->second); 
-        }
 
+        //acionada caso um dos pontos seja trocado de lugar
+        if (atualizaPontos)
+        {
+            for (int i = 0; i < grade.size(); ++i)
+            {
+                grade[i].erase(grade[i].begin(), grade[i].end());
+            }
+        }
         
         //Gera pontos a partir dos pontos iniciais
-        if (mainPoints.size() == 4 && !pontosCriados)
+        if ((mainPoints.size() == 4 && !pontosCriados) || atualizaPontos)
         {
             makeLinePoints(mainPoints[PONTO_A], mainPoints[PONTO_B], PONTOS_AB);
             makeLinePoints(mainPoints[PONTO_A], mainPoints[PONTO_D], PONTOS_AD);
             makeLinePoints(mainPoints[PONTO_B], mainPoints[PONTO_C], PONTOS_BC);
             makeLinePoints(mainPoints[PONTO_C], mainPoints[PONTO_D], PONTOS_CD);
-            pontosCriados = true;
-        
-            //printf("vai gerar pontos\n");
+
             //gera pontos a partir dos pontos computados
             //tem de estar na mesm ordem que os colocado a cima
             makePointsFromVector(PONTOS_AB, PONTOS_CD, PONTOS_AB_CD);
             makePointsFromVector(PONTOS_AD, PONTOS_BC, PONTOS_AD_BC);
+            pontosCriados = true;
+            atualizaPontos = false;
         } 
 
         //printf("%ld\n", grade[0].size());
 
         //printf("gerou\n");
-        glColor3f(1, 1  , 0);
+        glColor3f(0, 0, 1);
+        bool flag = false;
         for(int i = 0; i < grade.size(); i++)
         {
+            glBegin(GL_LINES);
             for (vector<pdd>::iterator it = grade[i].begin(); it != grade[i].end(); ++it)
             {
                 glVertex2f(it->first, it->second); 
             }
+            glEnd();
         }
+
+        glPointSize(POINT_SIZE);
+        glBegin(GL_POINTS);
+        glColor3f(1, 0, 0);
+        for (vector<pdd>::iterator it = mainPoints.begin(); it != mainPoints.end(); ++it)
+        {
+            glVertex2f(it->first, it->second); 
+        }
+
 
         glEnd();
         glutSwapBuffers();
@@ -190,6 +202,7 @@ void onCLick(int button, int state, int x, int y)
               printf("não entra\n");
               ponto = NULL;  
               arrastando = false;
+              atualizaPontos = true;
             } 
         }
     }
