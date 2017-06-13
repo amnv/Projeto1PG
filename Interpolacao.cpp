@@ -79,36 +79,58 @@ void Initialize() {
     glutSwapBuffers();
 }
 
-void makeLinePoints(pdd p1, pdd p2, int pos)
+bool isInScreen(pdd p)
+{
+    return !(p.first > WIDTH || p.first < 0 || p.second > HEIGHT || p.second < 0);
+}
+
+pdd lerp(pdd A, pdd B, double j)
+{
+    double x, y;
+    x = ((1 - j)*A.first) + (j*B.first);
+    y = ((1 - j)*A.second) + (j*B.second);
+
+    return make_pair(x, y);
+}
+
+bool insideForPoint(pdd A, pdd B, pdd C, pdd D, int pos, double j)
+{
+    pdd AB = lerp(A,B, j);
+    pdd DC = lerp(D, C, j);
+
+    if(!isInScreen(AB) && !isInScreen(DC)) return false;
+
+    grade[pos].push_back(AB);
+    grade[pos].push_back(DC);
+
+    for (double i = -0.2; ; i-=0.2)
+    {
+        pdd AB_DC = lerp(AB, DC, i);
+        if(!isInScreen(AB_DC)) break;
+        grade[pos].push_back(AB_DC);
+    }
+
+    for (double i = 1.2; ; i+=0.2)
+    {
+        pdd AB_DC = lerp(AB, DC, i);
+        if(!isInScreen(AB_DC)) break;
+        grade[pos].push_back(AB_DC);
+    }
+    return true;
+}
+
+void makeLinePoints(pdd A, pdd B, pdd C, pdd D, int pos)
 {
     double x, y;
 
-    for (double j = 0;; j-= 0.2)
+    for (double j = -0.02;; j-= 0.02)
     {
-        x = ((1 - j)*p1.first) + (j*p2.first);
-        y = ((1 - j)*p1.second) + (j*p2.second);
-        if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
-        grade[pos].push_back(make_pair(x,y));
+        if(insideForPoint(A, B, C, D, pos, j) == false) break;
     }
     
-    for (double j = 1;; j+= 0.2)
+    for (double j = 1.02;; j+= 0.02)
     {
-        x = ((1 - j)*p1.first) + (j*p2.first);
-        y = ((1 - j)*p1.second) + (j*p2.second);
-        printf("passando\n");
-        if(x > WIDTH || x < 0 || y > HEIGHT || y < 0) break;
-        grade[pos].push_back(make_pair(x,y));
-    }
-}
-
-void makePointsFromVector(int posVector1, int posVector2, int posPontos)
-{
-    int tam1 = grade[posVector1].size();
-    int tam2 = grade[posVector2].size();
-    for (int i = 0; i < tam1 && i < tam2 ; i++)
-    {
-        makeLinePoints(grade[posVector1][i],
-            grade[posVector2][i], posPontos);
+        if(insideForPoint(A, B, C, D, pos, j) == false) break;
     }
 }
 
@@ -131,15 +153,13 @@ void point()
         //Gera pontos a partir dos pontos iniciais
         if ((mainPoints.size() == 4 && !pontosCriados) || atualizaPontos)
         {
-            makeLinePoints(mainPoints[PONTO_A], mainPoints[PONTO_B], PONTOS_AB);
-            makeLinePoints(mainPoints[PONTO_B], mainPoints[PONTO_C], PONTOS_BC);
-            makeLinePoints(mainPoints[PONTO_A], mainPoints[PONTO_D], PONTOS_AD);
-            makeLinePoints(mainPoints[PONTO_C], mainPoints[PONTO_D], PONTOS_CD);
-
+            makeLinePoints(mainPoints[PONTO_A], mainPoints[PONTO_B], 
+                mainPoints[PONTO_C], mainPoints[PONTO_D], 0);
+     
             //gera pontos a partir dos pontos computados
             //tem de estar na mesm ordem que os colocado a cima
-            makePointsFromVector(PONTOS_AB, PONTOS_CD, PONTOS_AB_CD);
-            makePointsFromVector(PONTOS_AD, PONTOS_BC, PONTOS_AD_BC);
+            //makePointsFromVector(PONTOS_AB, PONTOS_CD, PONTOS_AB_CD);
+            //makePointsFromVector(PONTOS_AD, PONTOS_BC, PONTOS_AD_BC);
             pontosCriados = true;
             atualizaPontos = false;
         } 
@@ -149,7 +169,7 @@ void point()
         //printf("gerou\n");
         glColor3f(0, 0, 1);
         bool flag = false;
-        for(int i = 0; i < grade.size(); i++)
+        /*for(int i = 0; i < grade.size(); i++)
         {
             glBegin(GL_LINE_STRIP);
             for (vector<pdd>::iterator it = grade[i].begin(); it != grade[i].end(); ++it)
@@ -157,8 +177,18 @@ void point()
                 glVertex2f(it->first, it->second); 
             }
             glEnd();
+        }*/
+   glBegin(GL_POINTS);
+            for(int i = 0; i < grade.size(); i++)
+        {
+         
+            for (vector<pdd>::iterator it = grade[i].begin(); it != grade[i].end(); ++it)
+            {
+                glVertex2f(it->first, it->second); 
+            }
+            
         }
-
+glEnd();
         glPointSize(POINT_SIZE);
         glBegin(GL_POINTS);
         glColor3f(1, 0, 0);
@@ -238,7 +268,7 @@ int main(int iArgc, char** cppArgv) {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(WIDTH, HEIGHT);
     glutInitWindowPosition(200, 200);
-    glutCreateWindow("Interpolacao Bilineara Interativa");
+    glutCreateWindow("Interpolacao Bilinear Interativa");
     //glutDisplayFunc(point);
     glutIdleFunc(point);
     //glutDisplayFunc(point);
