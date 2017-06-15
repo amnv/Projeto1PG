@@ -86,56 +86,78 @@ pdd lerp(pdd A, pdd B, double j)
     return make_pair(x, y);
 }
 
+pp findLineSize(pdd p1, pdd p2)
+{
+    pdd previous1, previous2;
+    for (double i = 1.2;; i+=0.2)
+    {
+        pdd actual = lerp(p1, p2, i);
+//        printf("%lf %lf %lf\n", actual.first, actual.second, i);
+        if(isInScreen(actual)) 
+            previous1 = actual;
+        else break;       
+    }
+
+    for (double i = -0.2;; i-=0.2)
+    {
+        pdd actual = lerp(p1, p2, i);
+        if(isInScreen(actual)) 
+            previous2 = actual;
+        else break;       
+    }
+
+    return make_pair(previous1, previous2);
+}
+
+
+void drawLine(pdd pp1, pdd pp2)
+{
+    //glClear(GL_COLOR_BUFFER_BIT);
+    glLoadIdentity();
+    glColor3f(1, 0, 0);
+    int tam = mainPoints.size();
+    
+    pp pontos = findLineSize(pp1, pp2);
+    pdd p1 = pontos.first;
+    pdd p2 = pontos.second;
+    glBegin(GL_LINES);
+        glVertex2f(p1.first, p1.second);
+        glVertex2f(p2.first, p2.second);
+    glEnd();
+
+    glutSwapBuffers();   
+}
+
 bool insideForLinePoints(pdd A, pdd B, pdd C, pdd D, double j)
 {
-    pdd AB = lerp(A,B, j);
+    pdd AB = lerp(A, B, j);
     pdd DC = lerp(D, C, j);
+    pdd AD = lerp(A, D, j);
+    pdd BC = lerp(B, C, j);
 
     if(!isInScreen(AB) || !isInScreen(DC)) return false;
 
-    grade.push_back(AB);
-    grade.push_back(DC);
+    drawLine(AB, DC);
+    drawLine(AD, BC);
 
-    for (double i = -0.2; ; i-=0.2)
-    {
-        pdd AB_DC = lerp(AB, DC, i);
-        if(!isInScreen(AB_DC)) break;
-        grade.push_back(AB_DC);
-    }
-
-    for (double i = 1.2; ; i+=0.2)
-    {
-        pdd AB_DC = lerp(AB, DC, i);
-        if(!isInScreen(AB_DC)) break;
-        grade.push_back(AB_DC);
-    }
     return true;
 }
 
-void mainMainLines(pdd A, pdd B)
+
+void makeMainLines()
 {
-    for (double i = -0.2; ; i-=0.2)
+    int tam = mainPoints.size();
+    for (int i = 0; i < tam; ++i)
     {
-        pdd AB = lerp(A, B, i);
-        if(!isInScreen(AB)) break;
-        grade.push_back(AB);
+        drawLine(mainPoints[i%tam], mainPoints[(i+1)%tam]);
     }
-
-    for (double i = 1.2; ; i+=0.2)
-    {
-        pdd AB = lerp(A, B, i);
-        if(!isInScreen(AB)) break;
-        grade.push_back(AB);
-    }
-
 }
 
 void makeLinePoints(pdd A, pdd B, pdd C, pdd D)
 {
     double x, y;
 
-    mainMainLines(A, D);
-    mainMainLines(B, C);
+    makeMainLines();
 
     for (double j = -0.2;; j-= 0.2)
     {
@@ -144,55 +166,10 @@ void makeLinePoints(pdd A, pdd B, pdd C, pdd D)
     
     for (double j = 1.2;; j+= 0.2)
     {
-            if(insideForLinePoints(A, B, C, D,  j) == false) break;
-        }
+        if(insideForLinePoints(A, B, C, D,  j) == false) break;
+    }
 }
 
-pp findLineSize(pdd p1, pdd p2)
-{
-    printf("aqui 1\n");
-    pdd previous1, previous2;
-    for (double i = 1.2;; i+=0.2)
-    {
-    printf("aqui 2\n");
-        pdd actual = lerp(p1, p2, i);
-        printf("%lf %lf %lf\n", actual.first, actual.second, i);
-        if(isInScreen(actual)) 
-            previous1 = actual;
-        else break;       
-    }
-
-    for (double i = -0.2;; i-=0.2)
-    {
-    printf("aqui 3\n");
-        pdd actual = lerp(p1, p2, i);
-        if(isInScreen(actual)) 
-            previous2 = actual;
-        else break;       
-    }
-
-    printf("aqui 4\n");
-    return make_pair(previous1, previous2);
-}
-
-void makeMainLines()
-{
-    glClear(GL_COLOR_BUFFER_BIT);
-    glLoadIdentity();
-    glColor3f(1, 0, 0);
-    int tam = mainPoints.size();
-    for (int i = 0; i < tam; ++i)
-    {
-        pp pontos = findLineSize(mainPoints[i%tam], mainPoints[(i+1)%tam]);
-        pdd p1 = pontos.first;
-        pdd p2 = pontos.second;
-        glBegin(GL_LINES);
-            glVertex2f(p1.first, p1.second);
-            glVertex2f(p2.first, p2.second);
-        glEnd();
-    }
-    glutSwapBuffers();
-}
 
 void makeGrid()
 {
@@ -229,8 +206,7 @@ void point()
         //acionada caso um dos pontos seja trocado de lugar
         if (atualizaPontos)
         {
-                grade.erase(grade.begin(), grade.end());
-            
+            grade.erase(grade.begin(), grade.end());
         }
         
         //Gera pontos a partir dos pontos iniciais
@@ -240,28 +216,12 @@ void point()
                 mainPoints[PONTO_C], mainPoints[PONTO_D]);
      
             pontosCriados = true;
-            atualizaPontos = false;
+            atualizaPontos = true;
         } 
 
         glColor3f(0, 0, 1);
 
-/*
-        glBegin(GL_LINE_STRIP);
-        for (vector<pdd>::iterator it = grade.begin(); it != grade.end(); ++it)
-        {
-            glVertex2f(it->first, it->second); 
-        }
-        glEnd();
-        */
-        /*
-        glBegin(GL_POINTS);
-            for (vector<pdd>::iterator it = grade.begin(); it != grade.end(); ++it)
-            {
-                glVertex2f(it->first, it->second); 
-            }
-        glEnd();
-*/
-        glPointSize(POINT_SIZE);
+    glPointSize(POINT_SIZE);
         glBegin(GL_POINTS);
             glColor3f(1, 0, 0);
             for (vector<pdd>::iterator it = mainPoints.begin(); it != mainPoints.end(); ++it)
@@ -270,7 +230,6 @@ void point()
             }
         glEnd();
         
-        if(mainPoints.size() == 4) makeMainLines();
         glutSwapBuffers();
 }
 
