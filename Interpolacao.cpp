@@ -290,8 +290,8 @@ void dragPoint(int x, int y)
 
 int main(int iArgc, char** cppArgv) {
     //pegando dados da entrada
-    freopen("entrada.in", "r", stdin);
-    scanf("%d%d", &tamX, &tamY);
+    //freopen("entrada.in", "r", stdin);
+  //  scanf("%d%d", &tamX, &tamY);
 
 
         
